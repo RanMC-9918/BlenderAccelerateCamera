@@ -13,6 +13,7 @@ class Work():
 class MyProperties(bpy.types.PropertyGroup):
     damping: bpy.props.FloatProperty(name="Dampening", default=0.1)
     affect: bpy.props.FloatProperty(name="Affect", default=0.1)
+    RenderTill: bpy.props.IntProperty(name="RenderTill", default=200)
 
 class CamOperator(bpy.types.Operator):
     bl_idname = "object.cam_ender"
@@ -24,16 +25,20 @@ class CamOperator(bpy.types.Operator):
     damp = 0.1
     dampR = 0.1
     
+    
     def key(self, cam, fr):
         cam.keyframe_insert(data_path="location", frame=fr)
         cam.keyframe_insert(data_path="rotation_euler", frame=fr)
     
     def execute(self, context):
-        damp = context.scene.MyProperties.damping
+        
+        context.scene.frame_set(0)
+        self.damp = context.scene.MyProperties.damping
         affect = context.scene.MyProperties.affect
+        rendertill = context.scene.MyProperties.RenderTill
         cam = context.object
         self.key(cam, 0)
-        for i in range(1, 200):
+        for i in range(1, rendertill):
             for work in self.works:
                 if(work.start <= i and i < work.start + work.duration):
                     self.vel[0] += work.force[0] * affect
@@ -49,9 +54,9 @@ class CamOperator(bpy.types.Operator):
             self.vel[1] -= self.damp * self.vel[1]
             self.vel[2] -= self.damp * self.vel[2]
             
-            self.velR[0] -= self.dampR * self.velR[0]
-            self.velR[1] -= self.dampR * self.velR[1]
-            self.velR[2] -= self.dampR * self.velR[2]
+            self.velR[0] -= self.damp * self.velR[0]
+            self.velR[1] -= self.damp * self.velR[1]
+            self.velR[2] -= self.damp * self.velR[2]
                     
             cam.location.x += self.vel[0]
             cam.location.y += self.vel[1]
@@ -82,6 +87,7 @@ class CameraP(bpy.types.Panel):
          
          layout.prop(context.scene.MyProperties, "damping")
          layout.prop(context.scene.MyProperties, "affect")
+         layout.prop(context.scene.MyProperties, "RenderTill")
          
          layout.operator("object.get_control_data", text="Get Data")
          
@@ -102,21 +108,19 @@ class Control(bpy.types.Operator):
             keyframes = fcurve.keyframe_points
             if "location" in fcurve.data_path:
                 axis_index = fcurve.array_index
-                for i in range(int(len(keyframes)/2)):
+                for i in range(len(keyframes)-1):
                     f = [0, 0, 0]
                     f[axis_index] = keyframes[i].co[1]
                     CamOperator.works.append(Work(keyframes[i].co[0], f, keyframes[i+1].co[0]-keyframes[i].co[0]))
                     
-                    print(keyframes[i].co[0])
-                    print(f)
-                    print(keyframes[i+1].co[0]-keyframes[i].co[0])
             elif "rotation_euler" in fcurve.data_path:
                 axis_index = fcurve.array_index
-                for i in range(int(len(keyframes)/2)):
+                for i in range(len(keyframes)-1):
                     f = [0, 0, 0]
-                    f[axis_index] = keyframes[i].co[1]
+                    f[axis_index] = keyframes[i].co[1] 
                     CamOperator.worksR.append(Work(keyframes[i].co[0], f, keyframes[i+1].co[0]-keyframes[i].co[0]))
                     
+                    print(f)
         return {"FINISHED"}
 
 bpy.utils.register_class(MyProperties)      
