@@ -102,7 +102,7 @@ class Control(bpy.types.Operator):
     def execute(self, context):
         control = bpy.data.objects["CamControl"]
         CamOperator.works = []
-        CamOperator.workR = []
+        CamOperator.worksR = []
         
         for fcurve in control.animation_data.action.fcurves:
             keyframes = fcurve.keyframe_points
